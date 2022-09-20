@@ -35,6 +35,7 @@ jobs:
         cp layout.gds tinytapeout.gds
         python GDS2Obj/gds2obj.py tinytapeout.gds
         python -m pip install -r render/requirements.txt
+        python -m pip install mitsuba==3.0.1 # downgrade
         cp *.obj render/
         (cd render && python render_tinytapeout.py -spp 64)
 
