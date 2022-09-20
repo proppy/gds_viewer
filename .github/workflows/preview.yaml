@@ -7,78 +7,6 @@ permissions:
   id-token: write
 
 jobs:
-  render:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: checkout GDS2Obj repo
-      uses: actions/checkout@v2
-      with:
-        repository: mbalestrini/GDS2Obj
-        path: GDS2Obj
-
-    - name: checkout tinytapeout_mitsuba_render repo
-      uses: actions/checkout@v2
-      with:
-        repository: mbalestrini/tinytapeout_mitsuba_render
-        path: render
-
-    - name: setup python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-
-    - name: gds2obj
-      run: |
-        python -m pip install -r GDS2Obj/requirements.txt
-        cp layout.gds tinytapeout.gds
-        python GDS2Obj/gds2obj.py tinytapeout.gds
-        python -m pip install -r render/requirements.txt
-        python -m pip install mitsuba==3.0.1 # downgrade
-        cp *.obj render/
-        (cd render && python render_tinytapeout.py -spp 64)
-
-    - name: populate render cache
-      uses: actions/cache@v2
-      with:
-        path: render/*.png
-        key: ${{ runner.os }}-render-${{ github.run_id }}
-
-  viewer:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: checkout GDS2glTF repo
-      uses: actions/checkout@v2
-      with:
-        repository: mbalestrini/GDS2glTF
-        path: GDS2glTF
-
-    - name: checkout tinytapeout_gds_viewer repo
-      uses: actions/checkout@v2
-      with:
-        repository: mbalestrini/tinytapeout_gds_viewer
-        path: viewer
-
-    - name: setup python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-
-    - name: gds2gltf
-      run: |
-        python -m pip install -r GDS2glTF/requirements.txt
-        python GDS2glTF/gds2gltf.py layout.gds
-        cp layout.gds.gltf viewer/
-
-    - name: populate viewer cache
-      uses: actions/cache@v2
-      with:
-        path: viewer
-        key: ${{ runner.os }}-viewer-${{ github.run_id }}
-
   pages:
     needs:
     - render
@@ -90,22 +18,33 @@ jobs:
       page_url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-    - name: restore render cache
-      uses: actions/cache@v2
+    - uses: actions/checkout@v3
+
+    - name: checkout GDS2glTF repo
+      uses: actions/checkout@v2
       with:
-        path: render/*.png
-        key: ${{ runner.os }}-render-${{ github.run_id }}
-    - name: restore viewer cache
-      uses: actions/cache@v2
+        repository: mbalestrini/GDS2glTF
+        path: GDS2glTF
+
+    - name: setup python
+      uses: actions/setup-python@v4
       with:
-        path: viewer
-        key: ${{ runner.os }}-viewer-${{ github.run_id }}
+        python-version: '3.10'
+
+    - name: gds2gltf
+      run: |
+        python -m pip install -r GDS2glTF/requirements.txt
+        python GDS2glTF/gds2gltf.py layout.gds
+
     - name: Setup Pages
       uses: actions/configure-pages@v2
+
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v1
       with:
-        path: '.'
+        path: |
+          preview.html
+          layout.gds.gltf
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v1
@@ -119,10 +58,6 @@ jobs:
         PAGE_URL=${{ needs.pages.outputs.page_url }}
         PAGE_URL=$(echo "$PAGE_URL" | sed -e 's/\/$//')
         cat << EOF >> $GITHUB_STEP_SUMMARY
-        # render
-        ![persp]($PAGE_URL/render/scene_tinytapeout_PERSP.png)
-        ![top]($PAGE_URL/render/scene_tinytapeout_TOP.png)
-        ![topleft]($PAGE_URL/render/scene_tinytapeout_TOPLEFT.png)
         # viewer
         [open preview]($PAGE_URL/viewer/tinytapeout.html)
         EOF
