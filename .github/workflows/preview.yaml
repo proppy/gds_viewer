@@ -8,9 +8,6 @@ permissions:
 
 jobs:
   pages:
-    needs:
-    - render
-    - viewer
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
