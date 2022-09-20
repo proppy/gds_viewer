@@ -52,7 +52,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         repository: mbalestrini/GDS2glTF
-	path: GDS2glTF
+        path: GDS2glTF
 
     - name: checkout tinytapeout_gds_viewer repo
       uses: actions/checkout@v2
