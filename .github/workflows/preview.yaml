@@ -57,5 +57,5 @@ jobs:
         PAGE_URL=$(echo "$PAGE_URL" | sed -e 's/\/$//')
         cat << EOF >> $GITHUB_STEP_SUMMARY
         # viewer
-        [open preview]($PAGE_URL/viewer/viewer.html)
+        [open preview]($PAGE_URL/viewer.html)
         EOF
