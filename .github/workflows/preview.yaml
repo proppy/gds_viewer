@@ -67,7 +67,7 @@ jobs:
 
     - name: gds2gltf
       run: |
-        python -m pip install -r GDS2gltf/requirements.txt
+        python -m pip install -r GDS2glTF/requirements.txt
         python GDS2gltf/gds2gltf.py layout.gds
         cp layout.gds.gltf viewer/
 
