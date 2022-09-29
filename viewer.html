@@ -56,15 +56,13 @@
         import { TextGeometry } from 'textgeometry';
         import { GUI } from 'datgui';
 
-
-        var GLTF_URL = 'layout.gds.gltf';
-
         const scene = new THREE.Scene();
 
         var raycaster = new THREE.Raycaster();
         var mouse = new THREE.Vector2()
 
-        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 10000);
+        const canvas = document.querySelector('canvas#preview');
+        const camera = new THREE.PerspectiveCamera(50, canvas.width / canvas.height, 0.1, 10000);
 
         console.log(camera);
         camera.position.x = 50;
@@ -74,12 +72,9 @@
         camera.up.y = 0;
         camera.up.z = -1;
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: canvas });
 
         scene.background = new THREE.Color(0x202020);
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
         const ambient_light = new THREE.AmbientLight(0x808080); // soft white light
         scene.add(ambient_light);
 
@@ -102,7 +97,7 @@
 
 
 
-        var controls = new OrbitControls.OrbitControls(camera, renderer.domElement);
+        var controls = new OrbitControls.OrbitControls(camera, canvas);
         controls.target.set(50, 0, -50);
         controls.update();
 
@@ -111,21 +106,7 @@
             renderer.render(scene, camera);
         };
 
-        window.onresize = function () {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        };
-
         animate();
-
-
-
-        const loader = new FontLoader();
-        var mainFont = null;
-        loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
-            mainFont = font;
-        });
 
         const gui = new GUI();
         const guiViewSettings = gui.addFolder("View Settings");
@@ -149,19 +130,33 @@
 
 
         const gltf_loader = new GLTFLoader();
-        gltf_loader.load(
-            GLTF_URL,
+        gltf_loader.parse(
+            `{{ gltf_data }}`,
+            '',
             // called when the resource is loaded
             function (gltf) {
+                console.log('scene loaded', gltf)
+                gltf.scene.rotation.x = -Math.PI / 2;
 
                 scene.add(gltf.scene);
 
                 gltf.scene.rotation.x = -Math.PI / 2;
-                gltf.animations; // Array<THREE.AnimationClip>
-                gltf.scene; // THREE.Group
-                gltf.scenes; // Array<THREE.Group>
-                gltf.cameras; // Array<THREE.Camera>
-                gltf.asset; // Object
+
+                const box = new THREE.Box3();
+                box.setFromObject(gltf.scene);
+                const helper = new THREE.Box3Helper(box, 0xff00ff);
+                scene.add(helper);
+                const objWorldPos = new THREE.Vector3();
+                box.getCenter(objWorldPos);
+                console.log(objWorldPos);
+                camera.position.x = objWorldPos.x;
+                camera.position.y = 100;
+                camera.position.z = objWorldPos.z; //200;
+                camera.up.x = 0;
+                camera.up.y = 0;
+                camera.up.z = -1;
+                controls.target.set(objWorldPos.x, 0, objWorldPos.z);
+                controls.update();
 
                 let cell_stats = [];
                 for (var i = 0; i < scene.children.length; i++) {
@@ -201,32 +196,12 @@
                             });
                         }
                     }
-                })
+                })                
 
-                // TEXT TEST
-                // const geometry = new TextGeometry('TinyTapeout', {
-                //     font: mainFont,
-                //     size: 1.2,
-                //     height: 0.1,
-                //     curveSegments: 12,
-                //     bevelEnabled: false,
-                //     bevelThickness: 0.1,
-                //     bevelSize: 0.1,
-                //     bevelOffset: 0,
-                //     bevelSegments: 5
-                // });
-                // const textMesh = new THREE.Mesh(geometry);
-                // textMesh.rotation.x = -Math.PI / 2;
-                // scene.children[0].add(textMesh);
-
-            },
-            // called while loading is progressing
-            function (xhr) {
-                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
             },
             // called when loading has errors
             function (error) {
-                console.log('An error happened');
+                console.log('error', error);
             }
         );
 
@@ -242,8 +217,8 @@
             if (event.buttons != 0 || cellDetailMode)
                 return;
 
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            mouse.x = (event.clientX / canvas.width) * 2 - 1;
+            mouse.y = -(event.clientY / canvas.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
 
             var intersects = raycaster.intersectObject(scene, true);
@@ -254,7 +229,7 @@
             if (intersects.length > 0) {
                 for (var i = 0; i < intersects.length; i++) {
                     var object = intersects[i].object;
-                    if (object.parent.parent.name != "" && object.parent.visible) {
+                    if (object.parent && object.parent.parent && object.parent.parent.name != "" && object.parent.visible) {
                         informationDiv.innerHTML = ("Mouse over: " + object.parent.name + " (" + object.parent.userData["type"] + ")");
 
                         if (highlightedObjects == null) {
@@ -333,7 +308,6 @@
             } else if (event.key == "3") {
                 if (!cellDetailMode && highlightedObjects != null) {
                     cellDetailMode = true;
-                    // console.log(highlightedObject.parent);
                     for (var i = 0; i < scene.children.length; i++) {
                         for (var j = 0; j < scene.children[i].children.length; j++) {
                             for (var k = 0; k < scene.children[i].children[j].children.length; k++) {
@@ -349,21 +323,23 @@
                     
                     controls.saveState();
                     
-                    var objWorldPos = new THREE.Vector3;
-                    highlightedObjects[0].parent.getWorldPosition(objWorldPos);
-                    // console.log(objWorldPos);
-                    turnOffHighlight();
-
+                    console.log(highlightedObjects);
+                    const box = new THREE.Box3();
+                    box.setFromObject(highlightedObjects[0].parent);
+                    const helper = new THREE.Box3Helper(box, 0x00ff00);
+                    scene.add(helper);
+                    const objWorldPos = new THREE.Vector3();
+                    box.getCenter(objWorldPos);
                     camera.position.x = objWorldPos.x;
-                    camera.position.y = 20;;
+                    camera.position.y = 100;
                     camera.position.z = objWorldPos.z; //200;
-
                     camera.up.x = 0;
                     camera.up.y = 0;
                     camera.up.z = -1;
                     controls.target.set(objWorldPos.x, 0, objWorldPos.z);
                     controls.update();
 
+                    turnOffHighlight();
                 } else {
                     cellDetailMode = false;
 
@@ -388,6 +364,7 @@
 
 
     </script>
+    <canvas id="preview" width="1000px" height="500px"></canvas>
 </body>
 
 </html>
