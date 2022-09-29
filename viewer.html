@@ -30,7 +30,7 @@
         }
     </script>
 
-    <data id="scene">{{ gltf_data }}</data>
+    <textarea id="scene" style="display: none;">{{ gltf_data }}</textarea>
 
     <div style="position: absolute; color:white; left: 5px; top: 5px;">
         <div>KEYS
@@ -198,10 +198,11 @@
                 })                
 
             };
-        const scene_el = document.querySelector("#scene");
-        if (scene_el.textContent.includes("gltf_data") === false) {
+        const scene_el = document.getElementById("scene");
+        console.log(scene_el);
+        if (scene_el.value.includes("gltf_data") === false) {
           gltf_loader.parse(
-            scene_el.textContent,
+            scene_el.value,
             "",
             sceneLoaded,
             function (error) {
