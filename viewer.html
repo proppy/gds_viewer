@@ -30,6 +30,8 @@
         }
     </script>
 
+    <data id="scene">{{ gltf_data }}</data>
+
     <div style="position: absolute; color:white; left: 5px; top: 5px;">
         <div>KEYS
             <br>1: Hide Fill, Decap, Tap cells
@@ -61,8 +63,8 @@
         var raycaster = new THREE.Raycaster();
         var mouse = new THREE.Vector2()
 
-        const canvas = document.querySelector('canvas#preview');
-        const camera = new THREE.PerspectiveCamera(50, canvas.width / canvas.height, 0.1, 10000);
+        const canvas_el = document.querySelector('canvas#preview');
+        const camera = new THREE.PerspectiveCamera(50, canvas_el.width / canvas_el.height, 0.1, 10000);
 
         console.log(camera);
         camera.position.x = 50;
@@ -72,7 +74,7 @@
         camera.up.y = 0;
         camera.up.z = -1;
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: canvas });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: canvas_el });
 
         scene.background = new THREE.Color(0x202020);
         const ambient_light = new THREE.AmbientLight(0x808080); // soft white light
@@ -97,7 +99,7 @@
 
 
 
-        var controls = new OrbitControls.OrbitControls(camera, canvas);
+        var controls = new OrbitControls.OrbitControls(camera, canvas_el);
         controls.target.set(50, 0, -50);
         controls.update();
 
@@ -130,11 +132,8 @@
 
 
         const gltf_loader = new GLTFLoader();
-        gltf_loader.parse(
-            `{{ gltf_data }}`,
-            '',
-            // called when the resource is loaded
-            function (gltf) {
+
+        const sceneLoaded = function (gltf) {
                 console.log('scene loaded', gltf)
                 gltf.scene.rotation.x = -Math.PI / 2;
 
@@ -198,14 +197,26 @@
                     }
                 })                
 
-            },
-            // called when loading has errors
+            };
+        const scene_el = document.querySelector("#scene");
+        if (scene_el.textContent.includes("gltf_data") === false) {
+          gltf_loader.parse(
+            scene_el.textContent,
+            "",
+            sceneLoaded,
             function (error) {
-                console.log('error', error);
+                console.log('error parsing scene', error);
             }
-        );
-
-
+          );
+        } else {
+          gltf_loader.load(
+              "layout.gds.gltf",
+              sceneLoaded,
+              function (error) {
+                  console.log('error loading scene', error);
+              }
+          );
+        }
         const highlightMaterial = new THREE.MeshBasicMaterial({ color: 0x50f050 });
         highlightMaterial.name = "HIGHLIGHT";
         var previousMaterials = null;
@@ -217,8 +228,8 @@
             if (event.buttons != 0 || cellDetailMode)
                 return;
 
-            mouse.x = (event.clientX / canvas.width) * 2 - 1;
-            mouse.y = -(event.clientY / canvas.height) * 2 + 1;
+            mouse.x = (event.clientX / canvas_el.width) * 2 - 1;
+            mouse.y = -(event.clientY / canvas_el.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
 
             var intersects = raycaster.intersectObject(scene, true);
