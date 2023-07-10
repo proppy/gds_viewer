@@ -1,24 +1,15 @@
 import * as THREE from 'three';
-import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
-import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
-var gdsLayoutEmbedRaw = null;
-if (import.meta.env.VITE_GDS_LAYOUT_EMBED) {
-    gdsLayoutEmbedRaw = await import('./layout.gds.gltf?raw')
-}
 
-var informationDiv = document.querySelector("div#information");
 const scene = new THREE.Scene();
 
 var raycaster = new THREE.Raycaster();
 var mouse = new THREE.Vector2()
 
-const canvas_el = document.querySelector('canvas#preview');
-const camera = new THREE.PerspectiveCamera(50, canvas_el.width / canvas_el.height, 0.1, 10000);
+const camera = new THREE.PerspectiveCamera(50, canvasElement.width / canvasElement.height, 0.1, 10000);
 
 console.log(camera);
 camera.position.x = 50;
@@ -28,7 +19,7 @@ camera.up.x = 0;
 camera.up.y = 0;
 camera.up.z = -1;
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: canvas_el });
+const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: canvasElement });
 
 scene.background = new THREE.Color(0x202020);
 const ambient_light = new THREE.AmbientLight(0x808080); // soft white light
@@ -53,7 +44,7 @@ scene.add(rectLight2)
 
 
 
-var controls = new OrbitControls(camera, canvas_el);
+var controls = new OrbitControls(camera, canvasElement);
 controls.target.set(50, 0, -50);
 controls.update();
 
@@ -64,7 +55,7 @@ function animate() {
 
 animate();
 
-const gui = new GUI();
+const gui = new GUI({container: guiElement});
 const guiViewSettings = gui.addFolder("View Settings");
 guiViewSettings.open();
 const guiStatsFolder = gui.addFolder("Stats");
@@ -152,20 +143,9 @@ const sceneLoaded = function (gltf) {
         })                
 
     };
-const scene_el = document.getElementById("scene");
-console.log(scene_el);
-if (gdsLayoutEmbedRaw !== null) {
+if (gltfElement.value.includes("gltf_data") === false) {
   gltf_loader.parse(
-    gdsLayoutEmbedRaw.default,
-    "",
-    sceneLoaded,
-    function (error) {
-        console.log('error parsing embedded gds layout', error);
-    }
-  );
-} else if (scene_el.value.includes("gltf_data") === false) {
-  gltf_loader.parse(
-    scene_el.value,
+    gltfElement.value,
     "",
     sceneLoaded,
     function (error) {
@@ -192,20 +172,21 @@ window.onmousemove = function (event) {
     if (event.buttons != 0 || cellDetailMode)
         return;
 
-    mouse.x = (event.clientX / canvas_el.width) * 2 - 1;
-    mouse.y = -(event.clientY / canvas_el.height) * 2 + 1;
+    const canvasRect = canvasElement.getBoundingClientRect();
+    mouse.x = ((event.clientX - canvasRect.x) / canvasRect.width) * 2 - 1;
+    mouse.y = -((event.clientY - canvasRect.y) / canvasRect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
 
     var intersects = raycaster.intersectObject(scene, true);
 
     turnOffHighlight();
-        
 
     if (intersects.length > 0) {
         for (var i = 0; i < intersects.length; i++) {
             var object = intersects[i].object;
+	    console.log(object);
             if (object.parent && object.parent.parent && object.parent.parent.name != "" && object.parent.visible) {
-                informationDiv.innerHTML = ("Mouse over: " + object.parent.name + " (" + object.parent.userData["type"] + ")");
+                informationElement.innerHTML = ("Mouse over: " + object.parent.name + " (" + object.parent.userData["type"] + ")");
 
                 if (highlightedObjects == null) {
                     highlightedObjects = [];
@@ -270,69 +251,3 @@ function actionToggleTopCelGeometryVisibility() {
         }
     }
 }
-
-
-window.onkeypress = function (event) {
-    // console.log(event.key);
-    if (event.key == "1") {
-        actionToggleFillerCellsVisibility();
-
-
-    } else if (event.key == "2") {
-        actionToggleTopCelGeometryVisibility();
-    } else if (event.key == "3") {
-        if (!cellDetailMode && highlightedObjects != null) {
-            cellDetailMode = true;
-            for (var i = 0; i < scene.children.length; i++) {
-                for (var j = 0; j < scene.children[i].children.length; j++) {
-                    for (var k = 0; k < scene.children[i].children[j].children.length; k++) {
-                        var node = scene.children[i].children[j].children[k];
-                        if (node instanceof THREE.Object3D && node != highlightedObjects[0].parent) {
-                            node.visible = false;
-                        }
-                    }
-                }
-            }
-
-            
-            
-            controls.saveState();
-            
-            console.log(highlightedObjects);
-            const box = new THREE.Box3();
-            box.setFromObject(highlightedObjects[0].parent);
-            const helper = new THREE.Box3Helper(box, 0x00ff00);
-            scene.add(helper);
-            const objWorldPos = new THREE.Vector3();
-            box.getCenter(objWorldPos);
-            camera.position.x = objWorldPos.x;
-            camera.position.y = 100;
-            camera.position.z = objWorldPos.z; //200;
-            camera.up.x = 0;
-            camera.up.y = 0;
-            camera.up.z = -1;
-            controls.target.set(objWorldPos.x, 0, objWorldPos.z);
-            controls.update();
-
-            turnOffHighlight();
-        } else {
-            cellDetailMode = false;
-
-            for (var i = 0; i < scene.children.length; i++) {
-                for (var j = 0; j < scene.children[i].children.length; j++) {
-                    for (var k = 0; k < scene.children[i].children[j].children.length; k++) {
-                        var node = scene.children[i].children[j].children[k];
-                        if (node instanceof THREE.Object3D ) {
-                            node.visible = true;
-                        }
-                    }
-                }
-            }
-            controls.reset();
-            // camera.position.set(prevCameraPos);                    
-            // // camera.up.set(prevCameraUp);
-            // controls.target.set(prevControlTarget);
-            controls.update();
-        }
-    }
-};

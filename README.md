@@ -20,11 +20,3 @@ npm install
 npx vite build
 google-chrome dist/index.html
 ```
-
-## Build standalone viewer with embedded GDS
-
-```
-npm install
-VITE_GDS_LAYOUT_EMBED=1 npx vite build
-google-chrome dist/index.html
-```

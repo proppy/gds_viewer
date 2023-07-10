@@ -1,32 +1,14 @@
-<!DOCTYPE html>
-<html>
-
-<head>
-    <meta charset="utf-8">
-    <title>TinyTapeout GDS Viewer test</title>
-    <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Roboto', sans-serif;
-            font-size: 12px;
-        }
-    </style>
-</head>
-
-<body>
-    <textarea id="scene" style="display: none;">{{ gltf_data }}</textarea>
-
-    <div style="position: absolute; color:white; left: 5px; top: 5px;">
-        <div>KEYS
-            <br>1: Hide Fill, Decap, Tap cells
-            <br>2: Hide top cell geometry
-            <br>3: Isolate mouse over cell
-        </div>
-        <div id="information">INFO</div>
-    </div>
-    <script type="module" src="/main.js"></script>
-    <canvas id="preview" width="1000px" height="500px"></canvas>
-</body>
-
-</html>
+<div id="{{ gltf_id }}" style="position: relative;">
+  <textarea class="gltf_data" style="display: none;">{{ gltf_data }}</textarea>
+  <div class="information">INFO</div>
+  <script>
+    containerElement = document.getElementById("{{ gltf_id }}");
+    informationElement = containerElement.getElementsByClassName("information")[0];
+    gltfElement = containerElement.getElementsByClassName("gltf_data")[0];
+    canvasElement = containerElement.getElementsByClassName("scene")[0];
+    guiElement = containerElement.getElementsByClassName("gui")[0];
+  </script>
+  <script type="module" src="/main.js"></script>
+  <canvas class="scene" id="preview" width="1000px" height="500px"></canvas>
+  <div class="gui" style="position: absolute; right: 5px; top: 5px;"></div>
+</div>
