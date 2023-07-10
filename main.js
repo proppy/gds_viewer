@@ -6,6 +6,10 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+var gdsLayoutEmbedRaw = null;
+if (import.meta.env.VITE_GDS_LAYOUT_EMBED) {
+    gdsLayoutEmbedRaw = await import('./layout.gds.gltf?raw')
+}
 
 var informationDiv = document.querySelector("div#information");
 const scene = new THREE.Scene();
@@ -150,13 +154,22 @@ const sceneLoaded = function (gltf) {
     };
 const scene_el = document.getElementById("scene");
 console.log(scene_el);
-if (scene_el.value.includes("gltf_data") === false) {
+if (gdsLayoutEmbedRaw !== null) {
+  gltf_loader.parse(
+    gdsLayoutEmbedRaw.default,
+    "",
+    sceneLoaded,
+    function (error) {
+        console.log('error parsing embedded gds layout', error);
+    }
+  );
+} else if (scene_el.value.includes("gltf_data") === false) {
   gltf_loader.parse(
     scene_el.value,
     "",
     sceneLoaded,
     function (error) {
-        console.log('error parsing scene', error);
+        console.log('error parsing gds layout from template', error);
     }
   );
 } else {
@@ -164,9 +177,9 @@ if (scene_el.value.includes("gltf_data") === false) {
       "layout.gds.gltf",
       sceneLoaded,
       function (error) {
-          console.log('error loading scene', error);
+          console.log('error parsing external gds layout', error);
       }
-  );
+  );    
 }
 const highlightMaterial = new THREE.MeshBasicMaterial({ color: 0x50f050 });
 highlightMaterial.name = "HIGHLIGHT";
