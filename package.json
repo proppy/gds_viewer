@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "three": "^0.144.0"
+  },
+  "devDependencies": {
+    "vite": "^4.4.2",
+    "vite-plugin-singlefile": "^0.13.5"
+  }
+}
